@@ -13,17 +13,19 @@ using Ultimate_Splinterlands_Bot_V2.Utils;
 using Ultimate_Splinterlands_Bot_V2.Config;
 using Ultimate_Splinterlands_Bot_V2.Api;
 using Ultimate_Splinterlands_Bot_V2.Bot;
+using Newtonsoft.Json;
+using Ultimate_Splinterlands_Bot_V2.Model;
 
 namespace Ultimate_Splinterlands_Bot_V2
 {
-    internal class Program
+    class Program
     {
         private static object _TaskLock = new();
         private static object _SleepInfoLock = new();
-
-        private static void Main(string[] args)
+        static void Main(string[] args)
         {
             SetStartupPath();
+            CleanupLegacyFiles();
 
             if (args.Length > 0 && args[0] == "update")
             {
@@ -93,21 +95,27 @@ namespace Ultimate_Splinterlands_Bot_V2
                         Log.WriteToLog("Stopping bot...", Log.LogType.Warning);
                         cancellationTokenSource.Cancel();
                         break;
-
                     default:
                         break;
                 }
+            }   
+        }
+
+        private static void CleanupLegacyFiles()
+        {
+            if (File.Exists(Settings.StartupPath + @"\config\access_tokens.txt"))
+            {
+                File.Delete(Settings.StartupPath + @"\config\access_tokens.txt");
             }
         }
 
-        private static async Task BotLoopAsync(CancellationToken token)
+        static async Task BotLoopAsync(CancellationToken token)
         {
             var instances = new HashSet<Task>();
             int nextBotInstance = -1;
             bool firstRuntrough = true;
 
-            DateTime[] sleepInfo = new DateTime[Settings.BotInstances.Count];
-
+            DateTime[] sleepInfo = new DateTime[Settings.BotInstances.Count];           
             var ts = new CancellationTokenSource();
             var cancellationToken = ts.Token;
             //DateTime lastResetTime = DateTime.Now;
@@ -126,10 +134,10 @@ namespace Ultimate_Splinterlands_Bot_V2
                                 Log.LogBattleSummaryToTable();
                                 Log.WriteSupportInformationToLog();
                                 Thread.Sleep(5000);
-                                if (Settings.UpdatedAccessTokens)
+                                if ((DateTime.Now - Settings.LastSerialization).TotalMinutes > 30)
                                 {
-                                    Helper.SaveAccessTokens();
-                                    Settings.UpdatedAccessTokens = false;
+                                    Settings.LastSerialization = DateTime.Now;
+                                    Helper.SerializeBotInstances();
                                 }
                                 nextBotInstance = 0;
                                 while (SplinterlandsAPI.CheckForMaintenance().Result)
@@ -203,17 +211,24 @@ namespace Ultimate_Splinterlands_Bot_V2
             }
 
             await Task.WhenAll(instances);
+            Helper.SerializeBotInstances();
             Log.WriteToLog("Bot stopped!");
         }
 
-        private static bool ReadConfig()
+        static void LoadSplinterlandsSettings()
+        {
+            var settings = SplinterlandsAPI.GetSettings().Result;
+            Settings.SplinterlandsSettings = JsonConvert.DeserializeObject<SplinterlandsSettings>(settings);
+        }
+        static bool ReadConfig()
         {
             try
             {
+
                 string folder = Settings.StartupPath + @"/config/";
                 string filePathConfig = folder + "config.txt";
                 string filePathCardSettings = folder + "card_settings.txt";
-                string filePathTeamSettings = folder + "team_settings.txt";
+                string filePathCardSettingsExample = folder + "card_settings-example.txt";
 
                 if (!File.Exists(filePathConfig))
                 {
@@ -222,17 +237,19 @@ namespace Ultimate_Splinterlands_Bot_V2
                 }
                 if (!File.Exists(filePathCardSettings))
                 {
-                    Log.WriteToLog("No card_settings.txt in config folder!", Log.LogType.CriticalError);
-                    return false;
-                }
-                if (!File.Exists(filePathTeamSettings))
-                {
-                    Log.WriteToLog("No team_settings.txt in config folder!", Log.LogType.CriticalError);
-                    return false;
+                    // copy card settings example file
+                    if (File.Exists(filePathCardSettingsExample))
+                    {
+                        File.Copy(filePathCardSettingsExample, filePathCardSettings);
+                    }
+                    else
+                    {
+                        Log.WriteToLog("No card_settings.txt in config folder!", Log.LogType.CriticalError);
+                        return false;
+                    }
                 }
 
                 Settings.CardSettings = new CardSettings(File.ReadAllText(filePathCardSettings));
-                Settings.TeamSettings = new TeamSettings(File.ReadAllText(filePathTeamSettings));
                 //Settings.CardSettings = new("USE_CARD_SETTINGS=false");
 
                 Log.WriteToLog("Reading config...");
@@ -260,28 +277,29 @@ namespace Ultimate_Splinterlands_Bot_V2
                         case "ERC_THRESHOLD":
                             Settings.StopBattleBelowECR = Convert.ToInt32(temp[1]);
                             break;
-
                         case "STOP_BATTLE_BELOW_ECR":
                             Settings.StopBattleBelowECR = Convert.ToInt32(temp[1]);
                             break;
-
                         case "START_BATTLE_ABOVE_ECR":
                             Settings.StartBattleAboveECR = Convert.ToInt32(temp[1]);
                             break;
-
                         case "MINIMUM_BATTLE_POWER":
                             Settings.MinimumBattlePower = Convert.ToInt32(temp[1]);
                             break;
-
                         case "CLAIM_SEASON_REWARD":
                             Settings.ClaimSeasonReward = bool.Parse(temp[1]);
                             break;
-
                         case "CLAIM_QUEST_REWARD":
                             Settings.ClaimQuestReward = bool.Parse(temp[1]);
                             break;
+                        case "SHOW_SPS_REWARD":
+                            Settings.ShowSpsReward = bool.Parse(temp[1]);
+                            break;
                         case "ADVANCE_LEAGUE":
                             Settings.AdvanceLeague = bool.Parse(temp[1]);
+                            break; 
+                        case "FOCUS_CHEST_OPTIMISATION":
+                            Settings.FocusChestOptimization = bool.Parse(temp[1]);
                             break;
                         case "RANKED_FORMAT":
                             Settings.RankedFormat = temp[1].ToUpper();
@@ -292,50 +310,30 @@ namespace Ultimate_Splinterlands_Bot_V2
                         case "REQUEST_NEW_QUEST":
                             Settings.BadQuests = temp[1].Split(',');
                             break;
-
                         case "SHOW_BATTLE_RESULTS":
                             Settings.ShowBattleResults = bool.Parse(temp[1]);
                             break;
-
                         case "THREADS":
                             Settings.Threads = Convert.ToInt32(temp[1]);
                             break;
-
                         case "USE_BROWSER_MODE":
                             if (bool.Parse(temp[1]))
                             {
                                 Log.WriteToLog("Browser mode is no longer supported - will use lightning mode!", Log.LogType.Warning);
                             }
                             break;
-
-                        case "USE_API":
-                            Settings.UseAPI = bool.Parse(temp[1]);
-                            break;
-
                         case "API_URL":
                             Settings.PublicAPIUrl = temp[1];
                             break;
-
-                        case "FALLBACK_API_URL":
-                            Settings.FallBackPublicAPIUrl = temp[1];
-                            break;
-
-                        case "REPORT_GAME_RESULT":
-                            Settings.ReportGameResult = bool.Parse(temp[1]);
-                            break;
-
                         case "DEBUG":
                             Settings.DebugMode = bool.Parse(temp[1]);
                             break;
-
                         case "WRITE_LOG_TO_FILE":
                             Settings.WriteLogToFile = bool.Parse(temp[1]);
                             break;
-
                         case "AUTO_UPDATE":
                             Settings.AutoUpdate = bool.Parse(temp[1]);
                             break;
-
                         case "DISABLE_CONSOLE_COLORS":
                             if (bool.Parse(temp[1]))
                             {
@@ -343,11 +341,9 @@ namespace Ultimate_Splinterlands_Bot_V2
                                 ConsoleExtensions.Disable();
                             }
                             break;
-
                         case "SHOW_API_RESPONSE":
                             Settings.ShowAPIResponse = bool.Parse(temp[1]);
                             break;
-
                         case "USE_PRIVATE_API":
                             Settings.UsePrivateAPI = bool.Parse(temp[1]);
                             if (Settings.UsePrivateAPI)
@@ -357,15 +353,12 @@ namespace Ultimate_Splinterlands_Bot_V2
                                 Settings.PrivateAPIPassword = loginData[1];
                             }
                             break;
-
                         case "PRIVATE_API_SHOP":
                             Settings.PrivateAPIShop = temp[1];
                             break;
-
                         case "PRIVATE_API_URL":
                             Settings.PrivateAPIUrl = temp[1];
                             break;
-
                         case "POWER_TRANSFER_BOT":
                             Settings.PowerTransferBot = bool.Parse(temp[1]);
                             if (Settings.PowerTransferBot)
@@ -373,7 +366,6 @@ namespace Ultimate_Splinterlands_Bot_V2
                                 Settings.AvailablePowerTransfers = new();
                             }
                             break;
-
                         default:
                             break;
                     }
@@ -389,12 +381,13 @@ namespace Ultimate_Splinterlands_Bot_V2
                     $"PRIORITIZE_QUEST: {Settings.PrioritizeQuest}{Environment.NewLine}" +
                     $"CLAIM_QUEST_REWARD: {Settings.ClaimQuestReward}{Environment.NewLine}" +
                     $"CLAIM_SEASON_REWARD: {Settings.ClaimSeasonReward}{Environment.NewLine}" +
+                    $"SHOW_SPS_REWARD: {Settings.ShowSpsReward}{Environment.NewLine}" +
+                    $"FOCUS_CHEST_OPTIMIZATION: {Settings.FocusChestOptimization}{Environment.NewLine}" +
                     $"REQUEST_NEW_QUEST: {string.Join(",", Settings.BadQuests)}{Environment.NewLine}" +
                     $"ADVANCE_LEAGUE: {Settings.AdvanceLeague}{Environment.NewLine}" +
                     $"SLEEP_BETWEEN_BATTLES: {Settings.SleepBetweenBattles}{Environment.NewLine}" +
                     $"START_BATTLE_ABOVE_ECR: {Settings.StartBattleAboveECR}{Environment.NewLine}" +
                     $"STOP_BATTLE_BELOW_ECR: {Settings.StopBattleBelowECR}{Environment.NewLine}" +
-                    $"USE_API: {Settings.UseAPI}{Environment.NewLine}" +
                     $"USE_PRIVATE_API: {Settings.UsePrivateAPI}{ Environment.NewLine}" +
                     $"POWER_TRANSFER_BOT: {Settings.PowerTransferBot} {Environment.NewLine}" +
                     $"SHOW_BATTLE_RESULTS: {Settings.ShowBattleResults} {Environment.NewLine}" +
@@ -410,48 +403,57 @@ namespace Ultimate_Splinterlands_Bot_V2
             }
         }
 
-        private static bool ReadAccounts()
+        static bool ReadAccounts()
         {
-            Log.WriteToLog("Reading accounts.txt...");
+            string filePathAccountData = Settings.StartupPath + @"/config/account_data.json";
+            if (File.Exists(filePathAccountData))
+            {
+                Log.WriteToLog("Loading account data from account_data.json...");
+                Settings.BotInstances = JsonConvert.DeserializeObject<List<BotInstance>>(File.ReadAllText(filePathAccountData));
+            }
+
+            if (Settings.BotInstances == null)
+            {
+                Settings.BotInstances = new();
+            }
+            
             string filePathAccounts = Settings.StartupPath + @"/config/accounts.txt";
-            string filePathAccessTokens = Settings.StartupPath + @"/config/access_tokens.txt";
             if (!File.Exists(filePathAccounts))
             {
                 Log.WriteToLog("No accounts.txt in config folder - see accounts-example.txt!", Log.LogType.CriticalError);
                 return false;
             }
 
-            if (!File.Exists(filePathAccessTokens))
-            {
-                File.WriteAllText(filePathAccessTokens, "#DO NOT SHARE THESE!" + Environment.NewLine);
-            }
+            Log.WriteToLog("Checking for new and removed accounts in accounts.txt...");
 
-            Settings.BotInstances = new();
-            string[] accessTokens = File.ReadAllLines(filePathAccessTokens);
-            int indexCounter = 0;
+            int indexCount = 0;
 
-            foreach (string loginData in File.ReadAllLines(filePathAccounts))
+            string[] accountLoginData = File.ReadAllLines(filePathAccounts);
+            foreach (string loginData in accountLoginData)
             {
                 if (loginData.Trim().Length == 0 || loginData[0] == '#')
                 {
                     continue;
                 }
-                string[] temp = loginData.Split(':');
-                var query = accessTokens.Where(x => x.Split(':')[0] == temp[0]);
-                string accessToken = query.Any() ? query.First().Split(':')[1] : "";
+                string[] loginDataSplitted = loginData.Split(':');
+                string username = loginDataSplitted[0];
+                string postingKey = loginDataSplitted[1];
+                string activeKey = loginDataSplitted.Length >= 3 ? loginDataSplitted[2] : "";
 
-                if (temp.Length == 2)
+                var botInstance = Settings.BotInstances.FirstOrDefault(x => x.Username == username);
+                if (botInstance == null)
                 {
-                    Settings.BotInstances.Add(new BotInstance(temp[0].Trim().ToLower(), temp[1].Trim(), accessToken, indexCounter++));
+                    botInstance = new BotInstance(username);
+                    Settings.BotInstances.Add(botInstance);
                 }
-                else if (temp.Length >= 3 && temp[2].Trim() != "privatekey" && temp[3].Trim() != "apikey")
-                {
-                    Settings.BotInstances.Add(new BotInstance(temp[0].Trim().ToLower(), temp[1].Trim(), accessToken, indexCounter++, activeKey: temp[2].Trim(), apiKey: temp[3].Trim()));
-                }
-                else if (temp.Length >= 3 && temp[2].Trim() == "privatekey" && temp[3].Trim() != "apikey")
-                {
-                    Settings.BotInstances.Add(new BotInstance(temp[0].Trim().ToLower(), temp[1].Trim(), accessToken, indexCounter++, "", apiKey: temp[3].Trim()));
-                }
+
+                botInstance.Initialize(indexCount++, postingKey, activeKey);
+            }
+
+            // Delete removed accounts
+            if (accountLoginData.Length != Settings.BotInstances.Count)
+            {
+                Settings.BotInstances.RemoveAll(botInstance => accountLoginData.FirstOrDefault(loginData => loginData.Split(':')[0] == botInstance.Username) == null);
             }
 
             if (Settings.BotInstances.Count > 0)
@@ -466,8 +468,10 @@ namespace Ultimate_Splinterlands_Bot_V2
             }
         }
 
-        private static void Initialize()
+        static void Initialize()
         {
+            LoadSplinterlandsSettings();
+
             if (Settings.Threads > Settings.BotInstances.Count)
             {
                 Log.WriteToLog($"THREADS is larger than total number of accounts, lowering it to {Settings.BotInstances.Count.ToString().Pastel(Color.Red)}", Log.LogType.Warning);
@@ -550,7 +554,7 @@ namespace Ultimate_Splinterlands_Bot_V2
             Settings.oHived = new HiveAPI.CS.CHived(Settings._httpClient, "https://api.deathwing.me");
         }
 
-        private static void SetStartupPath()
+        static void SetStartupPath()
         {
             // Setup startup path
             string path = Assembly.GetExecutingAssembly().Location;

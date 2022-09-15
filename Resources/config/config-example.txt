@@ -6,20 +6,27 @@ STOP_BATTLE_BELOW_ECR=75
 MINIMUM_BATTLE_POWER=0
 CLAIM_SEASON_REWARD=false
 CLAIM_QUEST_REWARD=false
-REPORT_GAME_RESULT=false
 
-#Pick between wild or modern
+## Display how much SPS you won after a battle - activating this will make the bot slower.
+## This will also make you reach the splinterlands rate limit faster
+## Recommended setting: true if you have less than 100 accounts, false if you have more
+SHOW_SPS_REWARD=true
+
+##Pick between wild or modern
 RANKED_FORMAT=wild
 
 ## If enabled it will click on the advance to next league button
 ADVANCE_LEAGUE=true
 
-# The maximum league the bot will advance to. 0=bronze, 1=silver, 2=gold, 3=diamond, 4=champion
+## The maximum league the bot will advance to. 0=bronze, 1=silver, 2=gold, 3=diamond, 4=champion
 MAX_LEAGUE_TIER=4
 
 ## seperate by comma like this: earth,life - it will request new quest on earth and life quest
 ## Remove the # at the beginning of the next line to activate
 #REQUEST_NEW_QUEST=earth
+
+## Does not work on Windows 7, 8 and Windows Server 2012 or older
+FOCUS_CHEST_OPTIMIZATION=false
 ##################General Settings##################
 
 ##################Technical Settings##################
@@ -29,12 +36,10 @@ THREADS=1
 ## Disable this if you want a cleaner log or you have problems with too many
 ## requests to the splinterlands API. Disabling will also make battles 10-25 seconds faster.
 SHOW_BATTLE_RESULTS=true
-##################Lightning Mode Settings##################
+##################Technical Settings##################
 
 #######################API Settings########################
-USE_API=true
-API_URL=http://lostvoid.xyz/v2/
-FALLBACK_API_URL=http://splinterlandsapi.pcjones.de:8080/v2/
+API_URL=http://splinterlandsapi.pcjones.de:8080/v2/
 
 ## PRIVATE API Settings - ignore if you don't have it
 USE_PRIVATE_API=false
