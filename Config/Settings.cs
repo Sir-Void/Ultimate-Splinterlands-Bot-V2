@@ -10,6 +10,7 @@ using System.Runtime.Remoting;
 using System.Text;
 using System.Threading.Tasks;
 using Ultimate_Splinterlands_Bot_V2.Bot;
+using Ultimate_Splinterlands_Bot_V2.Model;
 
 namespace Ultimate_Splinterlands_Bot_V2.Config
 {
@@ -21,12 +22,12 @@ namespace Ultimate_Splinterlands_Bot_V2.Config
         public const string SPLINTERLANDS_BROADCAST_URL = "https://broadcast.splinterlands.com/send";
         public const string SPLINTERLANDS_WEBSOCKET_URL = "wss://ws2.splinterlands.com/";
         public const string SPLINTERLANDS_APP = "usb/1.0";
-        public const string BOT_GITHUB_REPO = "Sir-Void/Ultimate-Splinterlands-Bot-V2";
+        public const string BOT_GITHUB_REPO = "PCJones/Ultimate-Splinterlands-Bot-V2";
         public static char[] CharSubset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray();
         public static Random _Random = new();
         public static CookieContainer CookieContainer = new();
         public static string StartupPath = "";
-        public static bool UpdatedAccessTokens = false;
+        public static DateTime LastSerialization = DateTime.Now;
 
         public static bool AutoUpdate = false;
         public static bool LegacyWindowsMode = false;
@@ -35,24 +36,18 @@ namespace Ultimate_Splinterlands_Bot_V2.Config
         public static bool ShowAPIResponse = true;
 
         public static CardSettings CardSettings;
-        public static TeamSettings TeamSettings;
-
-        public static double InstanceWin = 0;
-        public static double InstanceDraw = 0;
-        public static double InstanceLose = 0;
-        public static bool ReportGameResult = false;
+        public static SplinterlandsSettings SplinterlandsSettings;
 
         public static bool ShowBattleResults = true;
         public static int Threads = 1;
 
         public static bool UseAPI = true;
         public static string PublicAPIUrl = "";
-        public static string FallBackPublicAPIUrl = "";
         public static bool UsePrivateAPI = false;
         public static string PrivateAPIUrl = "";
-        public static string PrivateAPIShop = "";
-        public static string PrivateAPIUsername = "";
-        public static string PrivateAPIPassword = "";
+        public static string PrivateAPIShop= "";
+        public static string PrivateAPIUsername= "";
+        public static string PrivateAPIPassword= "";
         public static bool PowerTransferBot = false;
         public static Dictionary<string, BotInstance> PlannedPowerTransfers = new();
         public static Queue<BotInstance> AvailablePowerTransfers;
@@ -62,6 +57,8 @@ namespace Ultimate_Splinterlands_Bot_V2.Config
         public static bool PrioritizeQuest = true;
         public static bool ClaimQuestReward = false;
         public static bool ClaimSeasonReward = false;
+        public static bool ShowSpsReward = false;
+        public static bool FocusChestOptimization = false;
         public static bool AdvanceLeague = false;
         public static int MaxLeagueTier = 4;
         public static int SleepBetweenBattles = 30;
@@ -75,7 +72,7 @@ namespace Ultimate_Splinterlands_Bot_V2.Config
         public static List<BotInstance> BotInstances { get; set; }
         public static List<(int index, string account, string battleResult, string rating, string ECR, string questStatus)> LogSummaryList { get; set; }
 
-        public static readonly HttpClient _httpClient = new();
+        public readonly static HttpClient _httpClient = new();
         public static CHived oHived;
 
         public static JArray CardsDetails;

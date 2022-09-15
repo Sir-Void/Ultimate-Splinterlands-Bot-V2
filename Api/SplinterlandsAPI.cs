@@ -17,7 +17,7 @@ namespace Ultimate_Splinterlands_Bot_V2.Api
 {
     public static class SplinterlandsAPI
     {
-        public static async Task<bool> CheckForMaintenance()
+        public static async Task<string> GetSettings()
         {
             try
             {
@@ -29,7 +29,21 @@ namespace Ultimate_Splinterlands_Bot_V2.Api
                     Log.WriteToLog($"Error with splinterlands API for settings, trying fallback api...", Log.LogType.Warning);
                     data = await Helper.DownloadPageAsync($"{Settings.SPLINTERLANDS_API_URL_FALLBACK}/settings");
                 }
-              return (bool)JToken.Parse(data)["maintenance_mode"];
+                return data;
+            }
+            catch (Exception ex)
+            {
+                Log.WriteToLog($"Could not get settings from splinterlands API: {ex}", Log.LogType.Error);
+            }
+            return "";
+        }
+
+        public static async Task<bool> CheckForMaintenance()
+        {
+            try
+            {
+                var data = await GetSettings();
+                return (bool)JToken.Parse(data)["maintenance_mode"];
             }
             catch (Exception ex)
             {
@@ -37,11 +51,10 @@ namespace Ultimate_Splinterlands_Bot_V2.Api
             }
             return true;
         }
-        public static async Task<(int power, int rating, int league)> GetPlayerDetailsAsync(string username)
+        public static async Task<(int power, int wildRating, int wildLeague, int modernRating, int modernLeague)> GetPlayerDetailsAsync(string username)
         {
             try
             {
-                string prefix = Settings.RankedFormat == "WILD" ? "" : "modern_";
                 string data = await Helper.DownloadPageAsync($"{Settings.SPLINTERLANDS_API_URL}/players/details?name={ username }");
                 if (data == null || data.Trim().Length < 10 || data.Contains("502 Bad Gateway") || data.Contains("Cannot GET"))
                 {
@@ -50,13 +63,14 @@ namespace Ultimate_Splinterlands_Bot_V2.Api
                     await Task.Delay(5000);
                     data = await Helper.DownloadPageAsync($"{Settings.SPLINTERLANDS_API_URL_FALLBACK}/players/details?name={ username }");
                 }
-                return ((int)JToken.Parse(data)["collection_power"], (int)JToken.Parse(data)[prefix + "rating"], (int)JToken.Parse(data)[prefix + "league"]);
+                return ((int)JToken.Parse(data)["collection_power"], (int)JToken.Parse(data)["rating"], (int)JToken.Parse(data)["league"],
+                    (int)JToken.Parse(data)["modern_rating"], (int)JToken.Parse(data)["modern_league"]);
             }
             catch (Exception ex)
             {
                 Log.WriteToLog($"{username}: Could not get player details from splinterlands API: {ex}", Log.LogType.Error);
             }
-            return (-1, -1, -1);
+            return (-1, -1, -1, -1, -1);
         }
 
         public static async Task<(bool enemyHasPicked, bool surrender)> CheckEnemyHasPickedAsync(string username, string tx)
@@ -89,8 +103,8 @@ namespace Ultimate_Splinterlands_Bot_V2.Api
             return (true, true);
         }
 
-        // this method is not being used currently
-        public static async Task<(int newRating, int ratingChange, decimal decReward, int result)> GetBattleResultAsync(string username, string tx)
+        // this method is only being used by legacy mode
+        public static async Task<(int newRating, int ratingChange, decimal spsReward, int result)> GetBattleResultAsync(string username, string tx)
         {
             try
             {
@@ -124,9 +138,9 @@ namespace Ultimate_Splinterlands_Bot_V2.Api
                     ((int)matchHistory["battles"][0]["player_2_rating_final"]);
                 int ratingChange = (string)matchHistory["battles"][0]["player_1"] == username ? newRating - ((int)matchHistory["battles"][0]["player_1_rating_initial"]) :
                     newRating - ((int)matchHistory["battles"][0]["player_2_rating_initial"]);
-                decimal decReward = (decimal)matchHistory["battles"][0]["reward_dec"];
+                decimal spsReward = (decimal)matchHistory["battles"][0]["reward_sps"];
 
-                return (newRating, ratingChange, decReward, gameResult);
+                return (newRating, ratingChange, spsReward, gameResult);
             }
             catch (Exception ex)
             {
@@ -180,17 +194,17 @@ namespace Ultimate_Splinterlands_Bot_V2.Api
             return null;
         }
 
-        public static async Task<Card[]> GetPlayerCardsAsync(string username)
+        public static async Task<Card[]> GetPlayerCardsAsync(string username, string accessToken)
         {
             try
             {
-                string data = await Helper.DownloadPageAsync($"{Settings.SPLINTERLANDS_API_URL}/cards/collection/{ username }");
+                string data = await Helper.DownloadPageAsync($"{Settings.SPLINTERLANDS_API_URL}/cards/collection/{ username }?token={ accessToken }&username={ username }");
                 if (data == null || data.Trim().Length < 10 || data.Contains("502 Bad Gateway") || data.Contains("Cannot GET"))
                 {
                     // Fallback API
                     await Task.Delay(5000);
                     Log.WriteToLog($"{username}: Error with splinterlands API for cards, trying fallback api...", Log.LogType.Warning);
-                    data = await Helper.DownloadPageAsync($"{Settings.SPLINTERLANDS_API_URL_FALLBACK}/cards/collection/{ username }");
+                    data = await Helper.DownloadPageAsync($"{Settings.SPLINTERLANDS_API_URL_FALLBACK}/cards/collection/{ username }?token={ accessToken }&username={ username }");
                 }
 
                 DateTime oneDayAgo = DateTime.Now.AddDays(-1);
