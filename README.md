@@ -21,33 +21,6 @@ A completely new, rewritten version of this bot: https://github.com/PCJones/ulti
 - And much more, see [Bot configuration](https://github.com/PCJones/Ultimate-Splinterlands-Bot-V2#bot-configuration)
 - Any suggestions?
 ------------------------------------
-## New Features
-- Added Fallback API Option
-- Team Settings
-
-```
-# Set to true to enable.
-USE_TEAM_SETTINGS=true
-
-# Minimum Battles for API to select the Team.
-MIN_BATTLES=1
-
-# What teams you want the bot to play.
-# You can put multiple cards per MONSTER POSITION.
-# You can also leave it to 0 | If left to 0 it will choose based on all the cards you have.
-# Example: PREFERRED_SUMMONER_ID=16,438,437,224
-PREFERRED_SUMMONER_ID=0
-PREFERRED_MONSTER_1_ID=0
-PREFERRED_MONSTER_2_ID=0
-PREFERRED_MONSTER_3_ID=0
-PREFERRED_MONSTER_4_ID=0
-PREFERRED_MONSTER_5_ID=0
-PREFERRED_MONSTER_6_ID=0
-
-# Select Cards Equal and Higher than this Level.
-# It's best to leave this to 1 if you don't have a team that is higher than Level 1.
-CARD_MIN_LEVEL=1
-```
 
 ## How to run on Termux(Android):
 
