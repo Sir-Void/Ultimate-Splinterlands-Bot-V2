@@ -367,10 +367,10 @@ namespace Ultimate_Splinterlands_Bot_V2
                             }
                             break;
 
-                        case "UseLVAPI":
+                        case "USELVAPI":
                             Settings.UseLVAPI = bool.Parse(temp[1]);
                             break;
-                        case "ReportGameResult":
+                        case "REPORTGAMERESULT":
                             Settings.ReportGameResult = bool.Parse(temp[1]);
                             break;
 
@@ -401,6 +401,9 @@ namespace Ultimate_Splinterlands_Bot_V2
                     $"SHOW_BATTLE_RESULTS: {Settings.ShowBattleResults} {Environment.NewLine}" +
                     $"THREADS: {Settings.Threads} {Environment.NewLine}" +
                     $"{Settings.CardSettings}");
+
+                Log.WriteToLog($"UseLVAPI: {Settings.UseLVAPI}{Environment.NewLine}" +
+                    $"ReportGameResult: {Settings.ReportGameResult}");
 
                 return true;
             }

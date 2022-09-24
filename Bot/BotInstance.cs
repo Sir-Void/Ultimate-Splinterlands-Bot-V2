@@ -1066,12 +1066,20 @@ namespace Ultimate_Splinterlands_Bot_V2.Bot
                     DrawsTotal++;
                     Log.WriteToLog($"{Username}: { logTextBattleResult}");
                     Log.WriteToLog($"{Username}: Rating has not changed ({ battleResult.newRating })");
+                    if (Settings.ReportGameResult)
+                    {
+                        BattleAPI.ReportGameResult(APIKey, Username, "Draw");
+                    }
                     break;
                 case 1:
                     WinsTotal++;
                     logTextBattleResult = $"You won! Reward: { battleResult.decReward } SPS";
                     Log.WriteToLog($"{Username}: { logTextBattleResult.Pastel(Color.Green) }");
                     Log.WriteToLog($"{Username}: New rating is { battleResult.newRating } ({ ("+" + battleResult.ratingChange.ToString()).Pastel(Color.Green) })");
+                    if (Settings.ReportGameResult)
+                    {
+                        BattleAPI.ReportGameResult(APIKey, Username, "Win");
+                    }
                     break;
                 case 0:
                     LossesTotal++;
@@ -1079,6 +1087,10 @@ namespace Ultimate_Splinterlands_Bot_V2.Bot
                     Log.WriteToLog($"{Username}: { logTextBattleResult.Pastel(Color.Red) }");
                     Log.WriteToLog($"{Username}: New rating is { battleResult.newRating } ({ battleResult.ratingChange.ToString().Pastel(Color.Red) })");
                     //BattleAPI.ReportLoss(winner, Username); disabled for now
+                    if (Settings.ReportGameResult)
+                    {
+                        BattleAPI.ReportGameResult(APIKey, Username, "Lose");
+                    }
                     break;
                 default:
                     break;
