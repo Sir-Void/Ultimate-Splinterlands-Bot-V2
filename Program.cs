@@ -366,6 +366,14 @@ namespace Ultimate_Splinterlands_Bot_V2
                                 Settings.AvailablePowerTransfers = new();
                             }
                             break;
+
+                        case "UseLVAPI":
+                            Settings.UseLVAPI = bool.Parse(temp[1]);
+                            break;
+                        case "ReportGameResult":
+                            Settings.ReportGameResult = bool.Parse(temp[1]);
+                            break;
+
                         default:
                             break;
                     }
@@ -439,6 +447,7 @@ namespace Ultimate_Splinterlands_Bot_V2
                 string username = loginDataSplitted[0];
                 string postingKey = loginDataSplitted[1];
                 string activeKey = loginDataSplitted.Length >= 3 ? loginDataSplitted[2] : "";
+                string apiKey = loginDataSplitted.Length >= 3 ? loginDataSplitted[3] : "";
 
                 var botInstance = Settings.BotInstances.FirstOrDefault(x => x.Username == username);
                 if (botInstance == null)
@@ -447,7 +456,7 @@ namespace Ultimate_Splinterlands_Bot_V2
                     Settings.BotInstances.Add(botInstance);
                 }
 
-                botInstance.Initialize(indexCount++, postingKey, activeKey);
+                botInstance.Initialize(indexCount++, postingKey, activeKey, apiKey);
             }
 
             // Delete removed accounts
