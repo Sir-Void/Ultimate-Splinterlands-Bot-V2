@@ -11,10 +11,9 @@ using Ultimate_Splinterlands_Bot_V2.Config;
 
 namespace Ultimate_Splinterlands_Bot_V2.Utils
 {
-    internal class Log
+    class Log
     {
         private static readonly object _ConsoleLock = new();
-
         public enum LogType
         {
             Success,
@@ -45,26 +44,21 @@ namespace Ultimate_Splinterlands_Bot_V2.Utils
                 case LogType.Success:
                     textColor = Color.Green;
                     break;
-
                 case LogType.Information:
                     textColor = Color.LightGray;
                     break;
-
                 case LogType.Error:
                     textColor = Color.Red;
                     messagePrefix += "Error: ".Pastel(textColor);
                     break;
-
                 case LogType.CriticalError:
                     textColor = Color.Magenta;
                     messagePrefix += "Critical Error: ".Pastel(textColor);
                     break;
-
                 case LogType.Warning:
                     textColor = Color.Yellow;
                     messagePrefix += "Warning: ".Pastel(textColor);
                     break;
-
                 default:
                     textColor = Color.LightGray;
                     break;
@@ -143,24 +137,6 @@ namespace Ultimate_Splinterlands_Bot_V2.Utils
 
             lock (_ConsoleLock)
             {
-                t.Print();
-            }
-        }
-
-        public static void LogInstanceSummaryToTable()
-        {
-            var t = new TablePrinter("Win", "Draw", "Lose", "Win Rate");
-            double InstanceBattles = Settings.InstanceWin + Settings.InstanceDraw + Settings.InstanceLose;
-            lock (_ConsoleLock)
-            {
-                if (Settings.InstanceWin == 0)
-                {
-                    t.AddRow(Settings.InstanceWin, Settings.InstanceDraw, Settings.InstanceLose, 0);
-                }
-                else
-                {
-                    t.AddRow(Settings.InstanceWin, Settings.InstanceDraw, Settings.InstanceLose, Math.Round(((Settings.InstanceWin / InstanceBattles) * 100), 2));
-                }
                 t.Print();
             }
         }

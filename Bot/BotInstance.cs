@@ -31,6 +31,7 @@ namespace Ultimate_Splinterlands_Bot_V2.Bot
         public string Username { get; private set; }
         private string PostingKey { get; set; }
         private string ActiveKey { get; set; } // only needed for plugins, not used by normal bot
+        private string APIKey { get; set; } // for LostVoid API
         [JsonProperty]
         public string AccessToken { get; private set; } // used for websocket authentication
         private int APICounter { get; set; }
@@ -458,11 +459,12 @@ namespace Ultimate_Splinterlands_Bot_V2.Bot
             LossesTotal = 0;
         }
 
-        public void Initialize(int index, string postingKey, string activeKey = "")
+        public void Initialize(int index, string postingKey, string activeKey = "", string apiKey = "")
         {
             LogSummary = new LogSummary(index, Username);
             PostingKey = postingKey;
             ActiveKey = activeKey;
+            APIKey = apiKey;
             AccessToken = AccessToken?.Length > 0 ? AccessToken : RequestAccessTokenAsync().Result;
             while (AccessToken.Length == 0)
             {
@@ -636,11 +638,20 @@ namespace Ultimate_Splinterlands_Bot_V2.Bot
 
                         if (transferPower)
                         {
-                            var sessionID = Settings.CookieContainer.GetCookies(new Uri(Settings.PrivateAPIShop)).FirstOrDefault();
-                            var args = $"{account.Username} {Username} {account.ActiveKey} {Settings.PrivateAPIUsername} " +
-                                $"{Settings.PrivateAPIPassword} {sessionID.Name} {sessionID.Value} {Settings.DebugMode}";
+                            var args = "";
+                            if (Settings.UseLVAPI)
+                            {
+                                args = $"{account.Username} {Username} {account.ActiveKey} {APIKey}";
+                            }
+                            else
+                            {
+                                var sessionID = Settings.CookieContainer.GetCookies(new Uri(Settings.PrivateAPIShop)).FirstOrDefault();
+                                args = $"{account.Username} {Username} {account.ActiveKey} {Settings.PrivateAPIUsername} " +
+                                    $"{Settings.PrivateAPIPassword} {sessionID.Name} {sessionID.Value} {Settings.DebugMode}";
+                            }
+
                             var fileName = System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows) ?
-                                 "Power Transfer Bot.exe" : "Power Transfer Bot";
+                                    "Power Transfer Bot.exe" : "Power Transfer Bot";
 
                             if (Helper.RunProcessWithResult(Settings.StartupPath + "/PowerTransferBot/" + fileName, args))
                             {
@@ -1125,6 +1136,10 @@ namespace Ultimate_Splinterlands_Bot_V2.Bot
                         logTextBattleResult = "DRAW";
                         Log.WriteToLog($"{Username}: { logTextBattleResult}");
                         Log.WriteToLog($"{Username}: Rating has not changed ({ newRating })");
+                        if (Settings.ReportGameResult)
+                        {
+                            BattleAPI.ReportGameResult(APIKey, Username, "Draw");
+                        }
                         break;
                     case 1:
                         WinsTotal++;
@@ -1132,6 +1147,10 @@ namespace Ultimate_Splinterlands_Bot_V2.Bot
                         logTextBattleResult = $"You won!";
                         Log.WriteToLog($"{Username}: { logTextBattleResult.Pastel(Color.Green) }");
                         Log.WriteToLog($"{Username}: New rating is { newRating } ({ ("+" + ratingChange.ToString()).Pastel(Color.Green) })");
+                        if (Settings.ReportGameResult)
+                        {
+                            BattleAPI.ReportGameResult(APIKey, Username, "Win");
+                        }
                         break;
                     case 0:
                         LossesTotal++;
@@ -1139,6 +1158,10 @@ namespace Ultimate_Splinterlands_Bot_V2.Bot
                         Log.WriteToLog($"{Username}: { logTextBattleResult.Pastel(Color.Red) }");
                         Log.WriteToLog($"{Username}: New rating is { newRating } ({ ratingChange.ToString().Pastel(Color.Red) })");
                         //API.ReportLoss(winner, Username); disabled for now
+                        if (Settings.ReportGameResult)
+                        {
+                            BattleAPI.ReportGameResult(APIKey, Username, "Lose");
+                        }
                         break;
                     default:
                         break;
