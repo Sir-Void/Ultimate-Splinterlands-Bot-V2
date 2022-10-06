@@ -48,7 +48,7 @@ PRIVATE_API_SHOP=
 POWER_TRANSFER_BOT=false
 
 ## LostVoid API ##
-UseLVAPI=false
+UseLVAPI=true
 ReportGameResult=false
 
 #######################API Settings########################
