@@ -224,6 +224,7 @@ namespace Ultimate_Splinterlands_Bot_V2.Api
 
                 string urlGetTeam = $"{Settings.PublicAPIUrl}get_team/{rating}";
                 APIResponse = await PostJSONToApi(matchDetails, urlGetTeam, username);
+                Log.WriteToLog($"{username}: API Response: {APIResponse.Pastel(Color.Yellow)}", debugOnly: true);
 
                 if (APIResponse.Contains("api limit reached"))
                 {
