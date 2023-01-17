@@ -45,7 +45,7 @@ namespace Ultimate_Splinterlands_Bot_V2.Bot
         private double WinsTotal { get; set; }
         [JsonProperty]
         private Reward Reward { get; set; }
-        private Card[] CardsCached { get; set; }
+        private UserCard[] CardsCached { get; set; }
         private Dictionary<GameEvent, JToken> GameEvents { get; set; }
         public bool CurrentlyActive { get; private set; }
         private bool WebsocketAuthenticated { get; set; }
@@ -285,7 +285,12 @@ namespace Ultimate_Splinterlands_Bot_V2.Bot
                 string monsters = "";
                 for (int i = 0; i < 6; i++)
                 {
-                    var monster = CardsCached.Where(x => x.card_detail_id == (string)team[$"monster_{i + 1}_id"]).FirstOrDefault();
+                    var cardId = (string)team[$"monster_{i + 1}_id"];
+                    if (cardId.Length == 0)
+                    {
+                        break;
+                    }
+                    var monster = CardsCached.Where(x => x.card_detail_id == cardId).FirstOrDefault();
                     if (monster == null || summoner == null)
                     {
                         if (Settings.UsePrivateAPI && !secondTry)
@@ -349,6 +354,12 @@ namespace Ultimate_Splinterlands_Bot_V2.Bot
                 string monsters = "";
                 for (int i = 0; i < 6; i++)
                 {
+                    var cardId = (string)team[$"monster_{i + 1}_id"];
+                    if (cardId.Length == 0)
+                    {
+                        break;
+                    }
+
                     var monster = CardsCached.Where(x => x.card_detail_id == (string)team[$"monster_{i + 1}_id"]).FirstOrDefault();
                     if (monster.card_detail_id.Length == 0)
                     {
@@ -695,7 +706,7 @@ namespace Ultimate_Splinterlands_Bot_V2.Bot
 
                 if (jsonResponsePlain == "" || !jsonResponsePlain.Contains("success") || !await WaitForTransactionSuccessAsync(tx, 30))
                 {
-                    var outstandingGame = await Helper.DownloadPageAsync(Settings.SPLINTERLANDS_API_URL + "/players/outstanding_match?username=" + Username);
+                    var outstandingGame = await Helper.DownloadPageAsync(Settings.SPLINTERLANDS_API_URL + "/players/outstanding_match?username=" + Username + "&token=" + AccessToken);
                     if (outstandingGame != "null")
                     {
                         tx = Helper.DoQuickRegex("\"id\":\"(.*?)\"", outstandingGame);
@@ -1351,12 +1362,6 @@ namespace Ultimate_Splinterlands_Bot_V2.Bot
                 Log.WriteToLog($"{Username}: Error at advancing league: {ex}");
             }
         }
-
-        private static string GetSummonerColor(string id)
-        {
-            return (string)Settings.CardsDetails[Convert.ToInt32(id) - 1]["color"];
-        }
-
         private async Task RequestNewQuestViaAPIAsync()
         {
             try

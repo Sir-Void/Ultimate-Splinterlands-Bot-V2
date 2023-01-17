@@ -8,7 +8,7 @@ using Ultimate_Splinterlands_Bot_V2.Config;
 
 namespace Ultimate_Splinterlands_Bot_V2.Model
 {
-    public record Card : IComparable
+    public record UserCard : IComparable
     {
         public string card_detail_id { get; init; }
         public string level { get; init; }
@@ -20,17 +20,17 @@ namespace Ultimate_Splinterlands_Bot_V2.Model
         [JsonIgnore]
         public bool IsSummoner { get; init; }
 
-        public Card(string cardId, string _card_long_id, string _level, bool _gold, bool _starter)
+        public UserCard(string cardId, string _card_long_id, string _level, bool _gold, bool _starter)
         {
             card_detail_id = cardId;
             card_long_id = _card_long_id;
             level = _level;
             gold = _gold;
             starter = _starter;
-            IsSummoner = cardId == "" ? false : (string)Settings.CardsDetails[Convert.ToInt32(cardId) - 1]["type"] == "Summoner";
+            IsSummoner = Settings.CardsDetails[Convert.ToInt32(cardId) - 1].IsSummoner();
         }
 
-        public Card(string cardId, string _card_long_id, string _level, bool _gold, bool _starter, bool _summoner)
+        public UserCard(string cardId, string _card_long_id, string _level, bool _gold, bool _starter, bool _summoner)
         {
             card_detail_id = cardId;
             card_long_id = _card_long_id;
@@ -47,7 +47,7 @@ namespace Ultimate_Splinterlands_Bot_V2.Model
                 return 1;
             }
 
-            Card otherCard = obj as Card;
+            UserCard otherCard = obj as UserCard;
             if (otherCard != null)
             {
                 int ownCardLevel = Convert.ToInt32(this.level);

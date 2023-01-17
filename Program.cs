@@ -15,6 +15,9 @@ using Ultimate_Splinterlands_Bot_V2.Api;
 using Ultimate_Splinterlands_Bot_V2.Bot;
 using Newtonsoft.Json;
 using Ultimate_Splinterlands_Bot_V2.Model;
+using System.Net;
+using System.Net.Http;
+using Splinterlands_Battle_REST_API.Model;
 
 namespace Ultimate_Splinterlands_Bot_V2
 {
@@ -57,8 +60,9 @@ namespace Ultimate_Splinterlands_Bot_V2
             Log.WriteStartupInfoToLog();
 
             // We have to configure the http client early because it might be used in account constructor
-            Settings._httpClient.Timeout = new TimeSpan(0, 2, 15);
-            Settings._httpClient.DefaultRequestHeaders.Add("User-Agent", "USB");
+            SetupHttpClient();
+
+            var updateCardDetailsTask = Helper.UpdateCardDetails();
 
             if (!ReadConfig() || !ReadAccountData())
             {
@@ -69,6 +73,13 @@ namespace Ultimate_Splinterlands_Bot_V2
 
             Helper.CheckForUpdate();
 
+            if (HasLegacyApi())
+            {
+                Log.WriteToLog("Press any key to close");
+                Console.ReadKey();
+                Environment.Exit(0);
+            }
+
             if (Settings.ClaimSeasonReward)
             {
                 Log.WriteToLog("Season Reward Claiming mode activated - set CLAIM_SEASON_REWARD=false to disable!", Log.LogType.Warning);
@@ -78,6 +89,7 @@ namespace Ultimate_Splinterlands_Bot_V2
 
             Thread.Sleep(1500); // Sleep 1.5 seconds to read config and welcome message
 
+            updateCardDetailsTask.Wait();
             Initialize();
 
             CancellationTokenSource cancellationTokenSource = new();
@@ -98,7 +110,20 @@ namespace Ultimate_Splinterlands_Bot_V2
                     default:
                         break;
                 }
-            }   
+            }
+        }
+
+        private static void SetupHttpClient()
+        {
+            var clientHandler = new HttpClientHandler
+            {
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+            };
+            var httpClient = new HttpClient(clientHandler);
+            httpClient.Timeout = new TimeSpan(0, 2, 15);
+            httpClient.DefaultRequestHeaders.Add("User-Agent", "USB");
+            httpClient.DefaultRequestHeaders.AcceptEncoding.Add(new System.Net.Http.Headers.StringWithQualityHeaderValue("gzip"));
+            Settings.HttpClient = httpClient;
         }
 
         private static void CleanupLegacyFiles()
@@ -107,6 +132,31 @@ namespace Ultimate_Splinterlands_Bot_V2
             {
                 File.Delete(Settings.StartupPath + @"\config\access_tokens.txt");
             }
+        }
+
+        private static bool HasLegacyApi()
+        {
+            if (!Settings.PublicAPIUrl.Contains("/v3/"))
+            {
+                Log.WriteToLog("This bot version only works with the new API - please change the following in your config.txt file:", Log.LogType.Warning);
+                Console.WriteLine("");
+                Console.WriteLine("please change the following in your config.txt file:");
+                Console.WriteLine("API_URL=http://splinterlandsapi.pcjones.de/v3/");
+                return true;
+            }
+            else if (Settings.UsePrivateAPI && !Settings.PrivateAPIUrl.Contains("/v3/"))
+            {
+                Log.WriteToLog("This bot version only works with the new API", Log.LogType.Warning);
+                Console.WriteLine("");
+                Console.WriteLine("please change the following in your config.txt file:");
+                Console.WriteLine("PRIVATE_API_URL=http://splinterlandsapi.pcjones.de/v3/");
+                return true;
+            }
+
+            // Temporarily replace API url with another one until old API server DNS settings are changed
+            Settings.PrivateAPIUrl = Settings.PrivateAPIUrl.Replace("/privatesps1.pcjones.de", "/beta-splinterlandsapi.pcjones.de").Replace("/privatesps2.pcjones.de", "/beta-splinterlandsapi.pcjones.de").Replace("/splinterlandsapi.pcjones.de", "/beta-splinterlandsapi.pcjones.de");
+            Settings.PublicAPIUrl = Settings.PublicAPIUrl.Replace("/splinterlandsapi.pcjones.de", "/beta-splinterlandsapi.pcjones.de");
+            return false;
         }
 
         static async Task BotLoopAsync(CancellationToken token)
@@ -325,6 +375,9 @@ namespace Ultimate_Splinterlands_Bot_V2
                         case "API_URL":
                             Settings.PublicAPIUrl = temp[1];
                             break;
+                        case "HIVE_NODE":
+                            Settings.HIVE_NODE = temp[1];
+                            break;
                         case "DEBUG":
                             Settings.DebugMode = bool.Parse(temp[1]);
                             break;
@@ -506,61 +559,20 @@ namespace Ultimate_Splinterlands_Bot_V2
                 {"gloridax", "dragon"}
             };
 
-            Settings.CardsDetails = Newtonsoft.Json.Linq.JArray.Parse(File.ReadAllText(Settings.StartupPath + @"/data/cardsDetails.json"));
-
-            Settings.Summoners = new Dictionary<string, string>
-            {
-                { "260", "fire" },
-                { "257", "water" },
-                { "437", "water" },
-                { "224", "dragon" },
-                { "189", "earth" },
-                { "145", "death" },
-                { "240", "dragon" },
-                { "167", "fire" },
-                { "438", "death" },
-                { "156", "life" },
-                { "440", "fire" },
-                { "114", "dragon" },
-                { "441", "life" },
-                { "439", "earth" },
-                { "262", "dragon" },
-                { "261", "life" },
-                { "178", "water" },
-                { "258", "death" },
-                { "27", "earth" },
-                { "38", "life" },
-                { "49", "death" },
-                { "5", "fire" },
-                { "70", "fire" },
-                { "73", "life" },
-                { "259", "earth" },
-                { "74", "death" },
-                { "72", "earth" },
-                { "442", "dragon" },
-                { "71", "water" },
-                { "88", "dragon" },
-                { "78", "dragon" },
-                { "200", "dragon" },
-                { "16", "water" },
-                { "239", "life" },
-                { "254", "water" },
-                { "235", "death" },
-                { "113", "life" },
-                { "109", "death" },
-                { "110", "fire" },
-                { "291", "dragon" },
-                { "278", "earth" },
-                { "236", "fire" },
-                { "56", "dragon" },
-                { "112", "earth" },
-                { "111", "water" },
-                { "205", "dragon" },
-                { "130", "dragon" }
-            };
+            LoadCards();
 
             Settings.LogSummaryList = new List<(int index, string account, string battleResult, string rating, string ECR, string questStatus)>();
-            Settings.oHived = new HiveAPI.CS.CHived(Settings._httpClient, Settings.HIVE_NODE);
+            Settings.oHived = new HiveAPI.CS.CHived(Settings.HttpClient, Settings.HIVE_NODE);
+        }
+
+        private static void LoadCards()
+        {
+            var cardsDetailsRaw = File.ReadAllText(Settings.StartupPath + "/data/cardsDetails.json");
+            Settings.CardsDetails = JsonConvert.DeserializeObject<DetailedCard[]>(cardsDetailsRaw);
+            Settings.StarterCards = Settings.CardsDetails.Where(card => card.rarity <= 2 && Settings.STARTER_EDITIONS.Contains(card.editions)).Select(card =>
+            {
+                return new UserCard(card.id.ToString(), "starter-" + card.id.ToString() + "-" + Helper.GenerateRandomString(5), "1", false, true);
+            }).ToArray();
         }
 
         static void SetStartupPath()
