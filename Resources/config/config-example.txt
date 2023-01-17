@@ -44,13 +44,17 @@ HIVE_NODE=https://api.hive.blog/
 ##################Technical Settings##################
 
 #######################API Settings########################
-API_URL=http://splinterlandsapi.pcjones.de:8080/v3/
+API_URL=https://spl.lostvoid.lol/api/
 
 ## PRIVATE API Settings - ignore if you don't have it
 USE_PRIVATE_API=false
 PRIVATE_API_URL=
 PRIVATE_API_SHOP=
 POWER_TRANSFER_BOT=false
+
+## LostVoid API ##
+UseLVAPI=true
+ReportGameResult=false
 #######################API Settings########################
 
 #####################Advanced Settings#####################

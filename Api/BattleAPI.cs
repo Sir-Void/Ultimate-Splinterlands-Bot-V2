@@ -18,7 +18,7 @@ namespace Ultimate_Splinterlands_Bot_V2.Api
 {
     public static class BattleAPI
     {
-        public static async Task<JToken> GetTeamFromAPIAsync(int rating, int mana, string rules, string[] splinters, UserCard[] cards, Quest quest, int chestTier, string username, string gameIdHash, bool secondTry = false, bool ignorePrivateAPI = false)
+        public static async Task<JToken> GetTeamFromAPIAsync(int rating, int mana, string rules, string[] splinters, UserCard[] cards, Quest quest, int chestTier, string username, string gameIdHash, bool secondTry = false, bool ignorePrivateAPI = false, string apiKey = "")
         {
             if (Settings.UsePrivateAPI && !ignorePrivateAPI)
             {
@@ -30,11 +30,11 @@ namespace Ultimate_Splinterlands_Bot_V2.Api
             }
             else
             {
-                if (Settings.PublicAPIUrl.Contains("/v2/"))
+                if (Settings.PublicAPIUrl.Contains("/v2/") || Settings.UseLVAPI)
                 {
-                    return await GetTeamFromPublicAPIV2Async(rating, mana, rules, splinters, cards, quest, chestTier, username, secondTry);
+                    return await GetTeamFromPublicAPIV2Async(rating, mana, rules, splinters, cards, quest, chestTier, username, apiKey, secondTry);
                 }
-                return await GetTeamFromPublicAPIV3Async(rating, mana, rules, splinters, cards, quest, chestTier, username, secondTry);
+                return await GetTeamFromPublicAPIV3Async(rating, mana, rules, splinters, cards, quest, chestTier, username, apiKey, secondTry);
             }
         }
 
@@ -192,14 +192,23 @@ namespace Ultimate_Splinterlands_Bot_V2.Api
             }
             return null;
         }
-        private static async Task<JToken> GetTeamFromPublicAPIV2Async(int rating, int mana, string rules, string[] splinters, UserCard[] cards, Quest quest, int chestTier, string username, bool secondTry = false)
+        private static async Task<JToken> GetTeamFromPublicAPIV2Async(int rating, int mana, string rules, string[] splinters, UserCard[] cards, Quest quest, int chestTier, string username, string apiKey, bool secondTry = false)
         {
             string APIResponse = "";
-            Log.WriteToLog($"{username}: Requesting team from public API...");
+            if (Settings.UseLVAPI)
+            {
+                Log.WriteToLog($"{username}: Requesting team from LostVoid API...");
+            }
+            else
+            {
+                Log.WriteToLog($"{username}: Requesting team from public API...");
+            }
             try
             {
                 bool chestTierReached = quest != null && quest.ChestTier != null && chestTier >= quest.ChestTier;
                 JObject matchDetails = new(
+                        new JProperty("api_key", apiKey),
+                        new JProperty("player", username),
                         new JProperty("mana", mana),
                         new JProperty("rules", rules),
                         new JProperty("splinters", splinters),
@@ -215,6 +224,7 @@ namespace Ultimate_Splinterlands_Bot_V2.Api
 
                 string urlGetTeam = $"{Settings.PublicAPIUrl}get_team/{rating}";
                 APIResponse = await PostJSONToApi(matchDetails, urlGetTeam, username);
+                Log.WriteToLog($"{username}: API Response: {APIResponse.Pastel(Color.Yellow)}", debugOnly: true);
 
                 if (APIResponse.Contains("api limit reached"))
                 {
@@ -222,7 +232,7 @@ namespace Ultimate_Splinterlands_Bot_V2.Api
                     {
                         Log.WriteToLog($"{username}: API Overloaded! Waiting 25 seconds and trying again after...", Log.LogType.Warning);
                         System.Threading.Thread.Sleep(25000);
-                        return await GetTeamFromPublicAPIV2Async(rating, mana, rules, splinters, cards, quest, chestTier, username, true);
+                        return await GetTeamFromPublicAPIV2Async(rating, mana, rules, splinters, cards, quest, chestTier, username, apiKey, true);
                     }
                     else
                     {
@@ -255,18 +265,18 @@ namespace Ultimate_Splinterlands_Bot_V2.Api
                 {
                     Log.WriteToLog($"{username}: Trying again...", Log.LogType.CriticalError);
                     await Task.Delay(2000);
-                    return await GetTeamFromPublicAPIV2Async(rating, mana, rules, splinters, cards, quest, chestTier, username, true);
+                    return await GetTeamFromPublicAPIV2Async(rating, mana, rules, splinters, cards, quest, chestTier, username, apiKey, true);
                 }
                 else if (secondTry)
                 {
                     Log.WriteToLog($"{username}: API overloaded or down?: Waiting 10 minutes...", Log.LogType.Warning);
                     await Task.Delay(1000 * 60 * 10);
-                    return await GetTeamFromPublicAPIV2Async(rating, mana, rules, splinters, cards, quest, chestTier, username, true);
+                    return await GetTeamFromPublicAPIV2Async(rating, mana, rules, splinters, cards, quest, chestTier, username, apiKey, true);
                 }
             }
             return null;
         }
-        private static async Task<JToken> GetTeamFromPublicAPIV3Async(int rating, int mana, string rules, string[] splinters, UserCard[] cards, Quest quest, int chestTier, string username, bool secondTry = false)
+        private static async Task<JToken> GetTeamFromPublicAPIV3Async(int rating, int mana, string rules, string[] splinters, UserCard[] cards, Quest quest, int chestTier, string username, string apiKey, bool secondTry = false)
         {
             string APIResponse = "";
             Log.WriteToLog($"{username}: Requesting team from public API...");
@@ -296,7 +306,7 @@ namespace Ultimate_Splinterlands_Bot_V2.Api
                     {
                         Log.WriteToLog($"{username}: API Overloaded! Waiting 25 seconds and trying again after...", Log.LogType.Warning);
                         System.Threading.Thread.Sleep(25000);
-                        return await GetTeamFromPublicAPIV2Async(rating, mana, rules, splinters, cards, quest, chestTier, username, true);
+                        return await GetTeamFromPublicAPIV2Async(rating, mana, rules, splinters, cards, quest, chestTier, username, apiKey, true);
                     }
                     else
                     {
@@ -329,13 +339,13 @@ namespace Ultimate_Splinterlands_Bot_V2.Api
                 {
                     Log.WriteToLog($"{username}: Trying again...", Log.LogType.CriticalError);
                     await Task.Delay(2000);
-                    return await GetTeamFromPublicAPIV2Async(rating, mana, rules, splinters, cards, quest, chestTier, username, true);
+                    return await GetTeamFromPublicAPIV2Async(rating, mana, rules, splinters, cards, quest, chestTier, username, apiKey, true);
                 }
                 else if (secondTry)
                 {
                     Log.WriteToLog($"{username}: API overloaded or down?: Waiting 10 minutes...", Log.LogType.Warning);
                     await Task.Delay(1000 * 60 * 10);
-                    return await GetTeamFromPublicAPIV2Async(rating, mana, rules, splinters, cards, quest, chestTier, username, true);
+                    return await GetTeamFromPublicAPIV2Async(rating, mana, rules, splinters, cards, quest, chestTier, username, apiKey, true);
                 }
             }
             return null;
@@ -493,6 +503,21 @@ namespace Ultimate_Splinterlands_Bot_V2.Api
                 }
             }
             return null;
+        }
+
+        public static async void ReportGameResult(string apiKey, string username, string result)
+        {
+            JObject GameResult = new(
+                        new JProperty("api_key", apiKey),
+                        new JProperty("player", username),
+                        new JProperty("result", result)
+                    );
+            using var content = new StringContent(JsonConvert.SerializeObject(GameResult), Encoding.UTF8, "application/json");
+            HttpResponseMessage response = await Settings.HttpClient.PostAsync(Settings.PublicAPIUrl + "rgs/", content);
+            if (Settings.UseLVAPI && Settings.ReportGameResult && response.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                Log.WriteToLog($"{username}: Reported Game Result: ({result})");
+            }
         }
 
         public static void ReportLoss(string enemy, string username)

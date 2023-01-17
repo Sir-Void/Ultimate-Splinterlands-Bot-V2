@@ -19,7 +19,7 @@ namespace Ultimate_Splinterlands_Bot_V2.Config
         public const string SPLINTERLANDS_BROADCAST_URL = "https://broadcast.splinterlands.com/send";
         public const string SPLINTERLANDS_WEBSOCKET_URL = "wss://ws2.splinterlands.com/";
         public const string SPLINTERLANDS_APP = "usb/1.0";
-        public const string BOT_GITHUB_REPO = "PCJones/Ultimate-Splinterlands-Bot-V2";
+        public const string BOT_GITHUB_REPO = "Sir-Void/Ultimate-Splinterlands-Bot-V2";
         public static char[] CharSubset = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray();
         public static Random _Random = new();
         public static CookieContainer CookieContainer = new();
@@ -76,6 +76,10 @@ namespace Ultimate_Splinterlands_Bot_V2.Config
         public static DetailedCard[] CardsDetails;
         public static UserCard[] StarterCards;
         public static Dictionary<string, string> QuestTypes;
+
+        // Settings for LostVoid API
+        public static bool UseLVAPI = false;
+        public static bool ReportGameResult = false;
     }
 }
 #pragma warning restore CA2211

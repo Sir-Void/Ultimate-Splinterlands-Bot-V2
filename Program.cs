@@ -136,7 +136,7 @@ namespace Ultimate_Splinterlands_Bot_V2
 
         private static bool HasLegacyApi()
         {
-            if (!Settings.PublicAPIUrl.Contains("/v3/"))
+            if (!Settings.PublicAPIUrl.Contains("/v3/") && !Settings.UseLVAPI)
             {
                 Log.WriteToLog("This bot version only works with the new API - please change the following in your config.txt file:", Log.LogType.Warning);
                 Console.WriteLine("");
